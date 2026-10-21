@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Sandbox</title>
+<style>
+:root{
+  --bg:#141518; --win:#1e1f23; --win2:#25262b; --title:#121316; --line:#34363c;
+  --hi:#4a4c54; --lo:#0a0a0c; --text:#d9dade; --dim:#8c8e96; --accent:#8fa8d8;
+  --ok:#6fbf73; --bad:#d86a6a; --warn:#d8b25a;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg);
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:32px 32px;
+  color:var(--text); font:13px Tahoma,Verdana,"Segoe UI",sans-serif;
+  min-height:100vh;
+}
+a{color:var(--accent)}
+/* ---------- top bar (game title bar) ---------- */
+.topbar{
+  display:flex; align-items:center; gap:8px; height:32px; padding:0 10px;
+  background:var(--title); border-bottom:1px solid var(--line); font-weight:bold;
+}
+.topbar .logo{display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none}
+.cube{width:14px;height:14px;background:linear-gradient(135deg,#ddd 0 50%,#999 50%);border:1px solid #000;transform:rotate(45deg) scale(.8)}
+.topbar .sp{flex:1}
+.topbar .wbtn{width:20px;height:18px;display:inline-grid;place-items:center;font-size:10px;background:var(--win2);border:1px solid;border-color:var(--hi) var(--lo) var(--lo) var(--hi)}
+/* ---------- nav (retro roblox style) ---------- */
+.nav{display:flex;flex-wrap:wrap;gap:2px;padding:6px 10px 0;background:#1a1b1f;border-bottom:2px solid var(--lo)}
+.nav a{
+  padding:6px 14px; color:var(--text); text-decoration:none; font-weight:bold;
+  background:var(--win2); border:1px solid; border-bottom:none;
+  border-color:var(--hi) var(--lo) transparent var(--hi);
+}
+.nav a.on{background:var(--win);color:#fff;position:relative;top:2px}
+.nav .user{margin-left:auto;align-self:center;color:var(--dim);font-weight:normal;padding-bottom:6px}
+/* ---------- windows ---------- */
+main{max-width:1000px;margin:20px auto;padding:0 16px}
+.win{background:var(--win);border:1px solid #000;box-shadow:inset 1px 1px 0 var(--hi),3px 3px 0 rgba(0,0,0,.5);margin-bottom:16px}
+.win>.t{display:flex;align-items:center;justify-content:space-between;background:var(--title);padding:7px 10px;font-weight:bold;color:#fff;border-bottom:1px solid var(--line)}
+.win>.t .x{width:20px;height:18px;display:grid;place-items:center;font-size:11px;background:var(--win2);border:1px solid;border-color:var(--hi) var(--lo) var(--lo) var(--hi)}
+.win>.b{padding:14px}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+/* ---------- controls ---------- */
+.btn{
+  display:inline-block; padding:7px 16px; font:bold 13px Tahoma,Verdana,sans-serif; color:#fff; cursor:pointer;
+  background:var(--win2); border:1px solid; border-color:var(--hi) var(--lo) var(--lo) var(--hi); text-decoration:none;
+}
+.btn:hover{background:#2f3036}
+.btn:active{border-color:var(--lo) var(--hi) var(--hi) var(--lo);padding:8px 15px 6px 17px}
+.btn:disabled{color:var(--dim);cursor:default}
+.btn.big{padding:10px 26px;font-size:15px}
+.btn.danger{color:#ffb4b4}
+input[type=text],input[type=password]{
+  width:100%; padding:7px 9px; background:#16171a; color:var(--text); font:13px Tahoma,Verdana,sans-serif;
+  border:1px solid; border-color:var(--lo) var(--hi) var(--hi) var(--lo); outline:none;
+}
+input:focus{border-color:var(--accent)}
+label{display:block;margin:10px 0 4px;color:var(--dim)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.muted{color:var(--dim)}
+.small{font-size:11px}
+.msg{margin-top:10px;padding:7px 9px;border:1px solid var(--line);background:#16171a;display:none}
+.msg.show{display:block}
+.msg.ok{color:var(--ok)} .msg.err{color:var(--bad)} .msg.info{color:var(--warn)}
+/* ---------- table (server browser) ---------- */
+table{width:100%;border-collapse:collapse}
+th{background:#22232a;color:#b9c3dc;text-align:left;padding:7px 10px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+td{padding:6px 10px;border-bottom:1px solid #222328}
+.tablebox{border:1px solid var(--line);background:#191a1e}
+.empty{height:160px;display:grid;place-items:center;color:var(--dim);font-size:15px}
+/* ---------- hero ---------- */
+.hero{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.hero h1{margin:0 0 6px;font:bold 28px Verdana,Tahoma,sans-serif;color:#fff;text-shadow:2px 2px 0 #000}
+.hero p{margin:0 0 4px;color:var(--dim);max-width:480px}
+/* ---------- blocky avatar ---------- */
+.avatar{position:relative;width:96px;height:150px;flex:none}
+.avatar div{position:absolute;border:1px solid #000}
+.av-head{left:30px;top:0;width:36px;height:34px;background:#f2d14b;border-radius:6px}
+.av-head:after{content:"";position:absolute;left:8px;top:11px;width:4px;height:4px;background:#111;box-shadow:14px 0 #111}
+.av-torso{left:24px;top:36px;width:48px;height:50px;background:var(--shirt,#3f74c4)}
+.av-la{left:2px;top:36px;width:21px;height:50px;background:#f2d14b}
+.av-ra{left:73px;top:36px;width:21px;height:50px;background:#f2d14b}
+.av-ll{left:24px;top:87px;width:23px;height:52px;background:#7ea33f}
+.av-rl{left:49px;top:87px;width:23px;height:52px;background:#7ea33f}
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.stat{background:#16171a;border:1px solid;border-color:var(--lo) var(--hi) var(--hi) var(--lo);padding:9px}
+.stat b{display:block;font-size:20px;color:#fff;margin-top:3px}
+.news li{margin-bottom:8px}
+.news .d{color:var(--dim);font-size:11px}
+.plist{list-style:none;margin:0;padding:0}
+.plist li{padding:5px 0;border-bottom:1px dotted var(--line);display:flex;gap:8px;align-items:center}
+.dot{width:10px;height:10px;background:#f2d14b;border:1px solid #000}
+.hidden{display:none!important}
+footer{text-align:center;color:var(--dim);font-size:11px;padding:20px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="logo" href="#home"><span class="cube"></span>3D Sandbox</a>
+  <span class="sp"></span>
+  <span class="wbtn">_</span><span class="wbtn">▫</span><span class="wbtn">✕</span>
+</div>
+<nav class="nav">
+  <a href="#home" data-p="home">Главная</a>
+  <a href="#servers" data-p="servers">Серверы</a>
+  <a href="#profile" data-p="profile">Профиль</a>
+  <a href="#login" data-p="login" id="navLogin">Вход</a>
+  <span class="user" id="navUser"></span>
+</nav>
+
+<main>
+<!-- ================= HOME ================= -->
+<section data-page="home">
+  <div class="win"><div class="t">3D Sandbox — Добро пожаловать<span class="x">✕</span></div><div class="b">
+    <div class="hero">
+      <div class="avatar"><div class="av-head"></div><div class="av-la"></div><div class="av-torso"></div><div class="av-ra"></div><div class="av-ll"></div><div class="av-rl"></div></div>
+      <div>
+        <h1>3D Sandbox</h1>
+        <p>Строй, ломай и играй с друзьями в физической песочнице. Создавай свои серверы, приглашай друзей по коду и делай что хочешь.</p>
+        <p class="small">Тестовая версия сайта.</p>
+        <div class="row">
+          <a class="btn big" href="#login" id="heroBtn">Создать аккаунт</a>
+          <button class="btn big" onclick="toast('Клиент игры пока недоступен для скачивания (тест).')">▶ Играть</button>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="grid">
+    <div class="win"><div class="t">Новости</div><div class="b">
+      <ul class="news">
+        <li><b>Мультиплеер</b> <span class="d">— тест</span><br>Появилось окно серверов: поиск, вход по коду и создание своего сервера.</li>
+        <li><b>Аккаунты</b> <span class="d">— тест</span><br>Вход через GitHub-токен. Ник можно менять раз в неделю.</li>
+        <li><b>Приватность</b><br>Статистика хранится в приватном репозитории игрока и не видна на GitHub.</li>
+      </ul>
+    </div></div>
+    <div class="win"><div class="t">Новые игроки</div><div class="b">
+      <ul class="plist" id="playersList"><li class="muted">Загрузка…</li></ul>
+    </div></div>
+  </div>
+</section>
+
+<!-- ================= SERVERS ================= -->
+<section data-page="servers" class="hidden">
+  <div class="win"><div class="t">Мультиплеер<span class="x">✕</span></div><div class="b">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><input type="text" placeholder="⌕ Поиск сервера по названию…" style="max-width:360px"></div>
+    <div class="tablebox">
+      <table><thead><tr><th>Название сервера ▼</th><th style="width:110px">Игроки ▼</th><th style="width:120px">Карта</th><th style="width:80px">Пинг</th></tr></thead></table>
+      <div class="empty">Пусто</div>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <a class="btn" href="#home">На главную</a>
+      <span class="row" style="margin:0">
+        <button class="btn" onclick="toast('Серверов пока нет.')">↻ Обновить</button>
+        <button class="btn" onclick="toast('Вход по коду доступен в игре.')">🔗 Войти по коду</button>
+        <button class="btn" onclick="toast('Создание сервера доступно в игре.')">+ Создать сервер</button>
+      </span>
+    </div>
+  </div></div>
+</section>
+
+<!-- ================= LOGIN ================= -->
+<section data-page="login" class="hidden">
+  <div class="win" style="max-width:520px;margin:0 auto 16px"><div class="t">Вход в аккаунт<span class="x">✕</span></div><div class="b">
+    <p class="muted" style="margin-top:0">Войди с помощью GitHub-токена (classic, права <b>repo</b>; для полного удаления аккаунта ещё <b>delete_repo</b>). Токен хранится только в этой вкладке браузера и никуда, кроме api.github.com, не отправляется.</p>
+    <label for="tokenIn">GitHub токен</label>
+    <input type="password" id="tokenIn" placeholder="ghp_…" autocomplete="off">
+    <div class="row">
+      <button class="btn" id="loginBtn">Войти</button>
+      <a class="small" href="https://github.com/settings/tokens/new?scopes=repo,delete_repo&description=3D%20Sandbox" target="_blank" rel="noopener">Создать токен на GitHub</a>
+    </div>
+    <div id="cfgBox" class="hidden">
+      <label for="cfgIn">Репозиторий сайта (owner/repo) — не найден автоматически</label>
+      <input type="text" id="cfgIn" placeholder="username/3dsandbox">
+    </div>
+    <div class="msg" id="loginMsg"></div>
+  </div></div>
+</section>
+
+<!-- ================= PROFILE ================= -->
+<section data-page="profile" class="hidden">
+  <div id="profNoLogin" class="win" style="max-width:520px;margin:0 auto"><div class="t">Профиль</div><div class="b">
+    <p>Сначала войди в аккаунт.</p><a class="btn" href="#login">Вход</a>
+  </div></div>
+
+  <div id="profCreate" class="win hidden" style="max-width:520px;margin:0 auto"><div class="t">Создание аккаунта</div><div class="b">
+    <p style="margin-top:0">У GitHub-пользователя <b id="cLogin"></b> ещё нет аккаунта 3D Sandbox.</p>
+    <p class="muted small">Будет создан <b>приватный</b> репозиторий <code>3dsandbox-account</code> в твоём GitHub — там хранится статистика. Публично виден только ник.</p>
+    <label for="cNick">Ник (3–20 символов: латиница, цифры, _)</label>
+    <input type="text" id="cNick" maxlength="20">
+    <div class="row"><button class="btn" id="createBtn">Создать аккаунт</button><button class="btn" onclick="logout()">Выйти</button></div>
+    <div class="msg" id="createMsg"></div>
+  </div></div>
+
+  <div id="profMain" class="hidden">
+    <div class="grid">
+      <div class="win"><div class="t">Профиль игрока</div><div class="b">
+        <div class="hero">
+          <div class="avatar"><div class="av-head"></div><div class="av-la"></div><div class="av-torso"></div><div class="av-ra"></div><div class="av-ll"></div><div class="av-rl"></div></div>
+          <div>
+            <h1 id="pNick"></h1>
+            <p>GitHub: <span id="pLogin"></span></p>
+            <p>В игре с: <span id="pCreated"></span></p>
+          </div>
+        </div>
+        <h3 style="margin:18px 0 8px">Статистика</h3>
+        <div class="stats" id="pStats"></div>
+        <div class="row"><button class="btn" id="simBtn">▶ Тестовая сессия (+статистика)</button></div>
+        <div class="msg" id="statMsg"></div>
+      </div></div>
+      <div>
+        <div class="win"><div class="t">Сменить ник</div><div class="b">
+          <p class="muted small" style="margin-top:0" id="nickInfo"></p>
+          <input type="text" id="nNick" maxlength="20" placeholder="Новый ник">
+          <div class="row"><button class="btn" id="nickBtn">Сменить</button></div>
+          <div class="msg" id="nickMsg"></div>
+        </div></div>
+        <div class="win"><div class="t">Аккаунт</div><div class="b">
+          <div class="row" style="margin-top:0"><button class="btn" onclick="logout()">Выйти</button></div>
+          <label for="delIn">Удаление: введи свой ник для подтверждения</label>
+          <input type="text" id="delIn">
+          <div class="row"><button class="btn danger" id="delBtn">Удалить аккаунт</button></div>
+          <div class="msg" id="delMsg"></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>3D Sandbox © 2026 · тестовый сайт · работает на GitHub Pages</footer>
+
+<script>
+const API = 'https://api.github.com';
+const ACC_REPO = '3dsandbox-account', ACC_FILE = 'account.json';
+const NICK_PREFIX = 'nick: ';
+const WEEK = 7 * 24 * 3600 * 1000;
+const NICK_RE = /^[A-Za-z0-9_]{3,20}$/;
+const S = { token: null, user: null, account: null, accSha: null };
+let CFG = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const b64e = s => { let x = ''; new TextEncoder().encode(s).forEach(c => x += String.fromCharCode(c)); return btoa(x); };
+const b64d = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+const fmtDate = t => new Date(t).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+
+function msg(id, text, kind = 'info') {
+  const el = $(id);
+  el.className = 'msg show ' + kind;
+  el.textContent = text;
+}
+function toast(text) { alert(text); }
+
+async function gh(path, opt = {}) {
+  const headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+  if (S.token) headers.Authorization = 'Bearer ' + S.token;
+  if (opt.body) headers['Content-Type'] = 'application/json';
+  const r = await fetch(API + path, { ...opt, headers, cache: 'no-store' });
+  if (r.status === 204) return null;
+  const d = await r.json().catch(() => null);
+  if (!r.ok) {
+    const e = new Error((d && d.message) || ('HTTP ' + r.status));
+    e.status = r.status;
+    throw e;
+  }
+  return d;
+}
+
+// ---------- config: where the public nickname registry lives ----------
+async function loadConfig() {
+  try {
+    const r = await fetch('config.json', { cache: 'no-store' });
+    if (r.ok) { CFG = await r.json(); if (CFG.owner && CFG.repo) return; }
+  } catch (e) {}
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  if (m) {
+    const seg = location.pathname.split('/').filter(Boolean)[0];
+    CFG = { owner: m[1], repo: seg && !seg.includes('.') ? seg : location.hostname };
+    return;
+  }
+  const saved = localGet('3ds_cfg');
+  if (saved && saved.includes('/')) { const [owner, repo] = saved.split('/'); CFG = { owner, repo }; return; }
+  CFG = null;
+  $('cfgBox').classList.remove('hidden');
+}
+function localGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function localSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+// ---------- public nickname registry (issues "nick: Name" in the site repo) ----------
+async function listNicks() {
+  if (!CFG) return [];
+  const out = [];
+  for (let p = 1; p <= 10; p++) {
+    const d = await gh(`/repos/${CFG.owner}/${CFG.repo}/issues?state=open&per_page=100&page=${p}`);
+    out.push(...d.filter(i => !i.pull_request && i.title.startsWith(NICK_PREFIX)));
+    if (d.length < 100) break;
+  }
+  return out.map(i => ({ nick: i.title.slice(NICK_PREFIX.length).trim(), login: i.user.login, number: i.number, at: i.created_at }));
+}
+const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+async function claimNick(nick) {
+  if (!CFG) throw new Error('Не задан репозиторий сайта (owner/repo).');
+  const taken = (await listNicks()).find(x => same(x.nick, nick) && !same(x.login, S.user.login));
+  if (taken) throw new Error('Ник «' + nick + '» уже занят.');
+  const issue = await gh(`/repos/${CFG.owner}/${CFG.repo}/issues`, {
+    method: 'POST',
+    body: JSON.stringify({ title: NICK_PREFIX + nick, body: 'Ник игрока 3D Sandbox. Личные данные аккаунта здесь не хранятся.' })
+  });
+  // two players may have claimed the same nick at once: the oldest issue wins
+  const winner = (await listNicks()).filter(x => same(x.nick, nick)).sort((a, b) => a.number - b.number)[0];
+  if (winner && winner.number !== issue.number) {
+    await releaseNick(issue.number);
+    if (!same(winner.login, S.user.login)) throw new Error('Ник «' + nick + '» уже занят.');
+    return winner.number;
+  }
+  return issue.number;
+}
+async function releaseNick(number) {
+  if (!number || !CFG) return;
+  try {
+    await gh(`/repos/${CFG.owner}/${CFG.repo}/issues/${number}`, { method: 'PATCH', body: JSON.stringify({ state: 'closed', state_reason: 'not_planned' }) });
+  } catch (e) {}
+}
+
+// ---------- private account storage (player's own private repo) ----------
+const accPath = () => `/repos/${S.user.login}/${ACC_REPO}`;
+async function loadAccount() {
+  try {
+    const f = await gh(`${accPath()}/contents/${ACC_FILE}`);
+    S.accSha = f.sha;
+    S.account = JSON.parse(b64d(f.content));
+  } catch (e) {
+    if (e.status !== 404) throw e;
+    S.account = null; S.accSha = null;
+  }
+}
+async function saveAccount(message) {
+  const r = await gh(`${accPath()}/contents/${ACC_FILE}`, {
+    method: 'PUT',
+    body: JSON.stringify({ message, content: b64e(JSON.stringify(S.account, null, 2)), ...(S.accSha ? { sha: S.accSha } : {}) })
+  });
+  S.accSha = r.content.sha;
+}
+async function ensurePrivateRepo() {
+  let repo;
+  try { repo = await gh(accPath()); }
+  catch (e) {
+    if (e.status !== 404) throw e;
+    repo = await gh('/user/repos', { method: 'POST', body: JSON.stringify({ name: ACC_REPO, private: true, description: '3D Sandbox — данные аккаунта (приватно)', has_issues: false, has_wiki: false }) });
+  }
+  if (!repo.private) throw new Error(`Репозиторий ${ACC_REPO} публичный — данные туда записаны не будут. Сделай его приватным или удали.`);
+}
+
+// ---------- auth ----------
+async function login(token) {
+  S.token = token;
+  try {
+    S.user = await gh('/user');
+  } catch (e) {
+    S.token = null;
+    throw new Error(e.status === 401 ? 'Неверный токен.' : e.message);
+  }
+  try { sessionStorage.setItem('3ds_token', token); } catch (e) {}
+  await loadAccount();
+}
+function logout() {
+  try { sessionStorage.removeItem('3ds_token'); } catch (e) {}
+  S.token = S.user = S.account = S.accSha = null;
+  location.hash = '#home';
+  render();
+}
+
+$('loginBtn').onclick = async () => {
+  const t = $('tokenIn').value.trim();
+  if (!t) return msg('loginMsg', 'Введи токен.', 'err');
+  if (!CFG && $('cfgIn').value.includes('/')) {
+    localSet('3ds_cfg', $('cfgIn').value.trim());
+    const [owner, repo] = $('cfgIn').value.trim().split('/');
+    CFG = { owner, repo };
+  }
+  $('loginBtn').disabled = true;
+  msg('loginMsg', 'Проверка…');
+  try {
+    await login(t);
+    $('tokenIn').value = '';
+    msg('loginMsg', 'Вход выполнен: ' + S.user.login, 'ok');
+    location.hash = '#profile';
+  } catch (e) { msg('loginMsg', e.message, 'err'); }
+  $('loginBtn').disabled = false;
+};
+
+// ---------- create / nick / delete ----------
+const newStats = () => ({ hours: 0, sessions: 0, placed: 0, broken: 0, servers: 0, created: 0 });
+
+$('createBtn').onclick = async () => {
+  const nick = $('cNick').value.trim();
+  if (!NICK_RE.test(nick)) return msg('createMsg', 'Ник: 3–20 символов, латиница, цифры, _', 'err');
+  $('createBtn').disabled = true;
+  msg('createMsg', 'Создание…');
+  let issue = null;
+  try {
+    await ensurePrivateRepo();
+    issue = await claimNick(nick);
+    const now = Date.now();
+    S.account = { nick, nickIssue: issue, createdAt: now, nickChangedAt: now, stats: newStats() };
+    S.accSha = null;
+    await saveAccount('Create 3D Sandbox account');
+    render();
+  } catch (e) {
+    if (issue && !S.accSha) await releaseNick(issue);
+    S.account = null;
+    msg('createMsg', e.message, 'err');
+  }
+  $('createBtn').disabled = false;
+};
+
+$('nickBtn').onclick = async () => {
+  const nick = $('nNick').value.trim();
+  const a = S.account;
+  if (!NICK_RE.test(nick)) return msg('nickMsg', 'Ник: 3–20 символов, латиница, цифры, _', 'err');
+  if (nick === a.nick) return msg('nickMsg', 'Это уже твой ник.', 'err');
+  const next = a.nickChangedAt + WEEK;
+  if (Date.now() < next) return msg('nickMsg', 'Сменить ник можно после ' + fmtDate(next), 'err');
+  $('nickBtn').disabled = true;
+  msg('nickMsg', 'Проверка ника…');
+  try {
+    const issue = await claimNick(nick);
+    const old = a.nickIssue;
+    Object.assign(a, { nick, nickIssue: issue, nickChangedAt: Date.now() });
+    await saveAccount('Change nickname');
+    if (old !== issue) await releaseNick(old);
+    $('nNick').value = '';
+    render();
+    msg('nickMsg', 'Ник изменён!', 'ok');
+  } catch (e) {
+    await loadAccount().catch(() => {});
+    msg('nickMsg', e.message, 'err');
+  }
+  $('nickBtn').disabled = false;
+};
+
+$('delBtn').onclick = async () => {
+  if ($('delIn').value.trim() !== S.account.nick) return msg('delMsg', 'Введи свой ник точно.', 'err');
+  if (!confirm('Удалить аккаунт ' + S.account.nick + '? Это необратимо.')) return;
+  $('delBtn').disabled = true;
+  msg('delMsg', 'Удаление…');
+  try {
+    await releaseNick(S.account.nickIssue);
+    try {
+      await gh(accPath(), { method: 'DELETE' });
+    } catch (e) {
+      // no delete_repo scope: wipe the data file instead
+      await gh(`${accPath()}/contents/${ACC_FILE}`, { method: 'DELETE', body: JSON.stringify({ message: 'Delete 3D Sandbox account', sha: S.accSha }) });
+    }
+    S.account = S.accSha = null;
+    $('delIn').value = '';
+    render();
+    msg('createMsg', 'Аккаунт удалён.', 'ok');
+  } catch (e) { msg('delMsg', e.message, 'err'); }
+  $('delBtn').disabled = false;
+};
+
+$('simBtn').onclick = async () => {
+  const st = S.account.stats, r = n => Math.floor(Math.random() * n);
+  st.sessions += 1; st.hours = +(st.hours + 0.2 + Math.random()).toFixed(1);
+  st.placed += r(300); st.broken += r(200); st.servers += r(3); st.created += r(2);
+  $('simBtn').disabled = true;
+  try { await saveAccount('Test session'); render(); msg('statMsg', 'Сессия записана.', 'ok'); }
+  catch (e) { msg('statMsg', e.message, 'err'); await loadAccount().catch(() => {}); }
+  $('simBtn').disabled = false;
+};
+
+// ---------- render ----------
+function render() {
+  const page = (location.hash || '#home').slice(1);
+  document.querySelectorAll('[data-page]').forEach(s => s.classList.toggle('hidden', s.dataset.page !== page));
+  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.p === page));
+
+  const logged = !!S.user;
+  $('navLogin').classList.toggle('hidden', logged);
+  $('navUser').textContent = logged ? (S.account ? S.account.nick : S.user.login) + ' · онлайн' : '';
+  $('heroBtn').textContent = logged ? 'Мой профиль' : 'Создать аккаунт';
+  $('heroBtn').href = logged ? '#profile' : '#login';
+
+  $('profNoLogin').classList.toggle('hidden', logged);
+  $('profCreate').classList.toggle('hidden', !logged || !!S.account);
+  $('profMain').classList.toggle('hidden', !logged || !S.account);
+  if (logged && !S.account) $('cLogin').textContent = S.user.login;
+  if (logged && S.account) {
+    const a = S.account, st = a.stats || newStats();
+    $('pNick').textContent = a.nick;
+    $('pLogin').textContent = S.user.login;
+    $('pCreated').textContent = fmtDate(a.createdAt);
+    const items = [['Часов в игре', st.hours], ['Сессий', st.sessions], ['Поставлено блоков', st.placed], ['Сломано блоков', st.broken], ['Посещено серверов', st.servers], ['Создано серверов', st.created]];
+    $('pStats').innerHTML = items.map(([k, v]) => `<div class="stat">${k}<b>${esc(v)}</b></div>`).join('');
+    const next = a.nickChangedAt + WEEK;
+    $('nickInfo').textContent = Date.now() >= next ? 'Ник можно сменить сейчас (1 раз в неделю).' : 'Следующая смена ника: ' + fmtDate(next);
+    $('nickBtn').disabled = Date.now() < next;
+  }
+}
+
+async function loadPlayers() {
+  const el = $('playersList');
+  if (!CFG) { el.innerHTML = '<li class="muted">Сайт не настроен.</li>'; return; }
+  try {
+    const list = (await listNicks()).slice(0, 10);
+    el.innerHTML = list.length ? list.map(p => `<li><span class="dot"></span>${esc(p.nick)}</li>`).join('') : '<li class="muted">Пока никого.</li>';
+  } catch (e) { el.innerHTML = '<li class="muted">Не удалось загрузить.</li>'; }
+}
+
+window.addEventListener('hashchange', render);
+(async () => {
+  await loadConfig();
+  render();
+  loadPlayers();
+  let t = null;
+  try { t = sessionStorage.getItem('3ds_token'); } catch (e) {}
+  if (t) { try { await login(t); } catch (e) { logout(); } render(); }
+})();
+</script>
+</body>
+</html>
